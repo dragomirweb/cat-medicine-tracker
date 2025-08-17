@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kitty Medicine Tracker 🐾</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/isSameOrAfter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/plugin/isSameOrBefore.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .header h1 {
+            color: #e17055;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .paw-print {
+            display: inline-block;
+            font-size: 1.5em;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .cat-emoji {
+            font-size: 3em;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #74b9ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0984e3;
+            transform: scale(1.05);
+        }
+
+        .btn-success {
+            background: #55efc4;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #00b894;
+        }
+
+        .btn-danger {
+            background: #ff7675;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d63031;
+        }
+
+        .calendar-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: #fdcb6e;
+            padding: 15px;
+            border-radius: 15px;
+        }
+
+        .calendar-nav button {
+            background: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .calendar-nav button:hover {
+            background: #ffeaa7;
+            transform: scale(1.1);
+        }
+
+        .current-month {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .day-header {
+            text-align: center;
+            font-weight: bold;
+            color: #e17055;
+            padding: 10px;
+            background: #ffeaa7;
+            border-radius: 10px;
+        }
+
+        .day-cell {
+            aspect-ratio: 1;
+            border: 2px solid #dfe6e9;
+            border-radius: 15px;
+            padding: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .day-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .day-cell.other-month {
+            opacity: 0.3;
+        }
+
+        .day-cell.today {
+            background: #ffeaa7;
+            border-color: #fdcb6e;
+            font-weight: bold;
+        }
+
+        .day-number {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .medicine-dots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-top: 5px;
+        }
+
+        .medicine-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid #2d3436;
+        }
+
+        .medicine-dot.taken {
+            background: #55efc4;
+        }
+
+        .medicine-dot.pending {
+            background: #fdcb6e;
+        }
+
+        .medicine-dot.break {
+            background: #b2bec3;
+            border-style: dashed;
+        }
+
+        .medicine-list {
+            background: #f5f3f0;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .medicine-list h2 {
+            color: #e17055;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .medicine-item {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .medicine-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .medicine-info {
+            flex: 1;
+        }
+
+        .medicine-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #2d3436;
+            margin-bottom: 5px;
+        }
+
+        .medicine-schedule {
+            color: #636e72;
+            font-size: 0.9em;
+        }
+
+        .medicine-color {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            margin-right: 15px;
+            border: 2px solid #2d3436;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        #confirmationModal {
+            z-index: 1500;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 30px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+
+        .modal h2 {
+            color: #e17055;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2d3436;
+            font-weight: bold;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #dfe6e9;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #74b9ff;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+
+        .color-option.selected {
+            border-color: #2d3436;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        .today-medicines {
+            background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .today-medicines h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .today-medicine-item {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper label {
+            cursor: pointer;
+            font-size: 1.1em;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #636e72;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="cat-emoji">🐱</span>
+            <h1><span class="paw-print">🐾</span> Kitty Medicine Tracker <span class="paw-print">🐾</span></h1>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="todayCount">0</div>
+                <div class="stat-label">Today's Medicines</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="completionRate">0%</div>
+                <div class="stat-label">Today's Completion</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="activeMeds">0</div>
+                <div class="stat-label">Active Medicines</div>
+            </div>
+        </div>
+
+        <div class="today-medicines" id="todayMedicines">
+            <h2>🌟 Today's Medicines</h2>
+            <div id="todayList"></div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" onclick="openAddMedicineModal()">➕ Add Medicine</button>
+            <button class="btn btn-success" onclick="exportData()">📥 Export Data</button>
+            <button class="btn btn-danger" onclick="clearAllData()">🗑️ Clear All Data</button>
+        </div>
+
+        <div class="medicine-list">
+            <h2>💊 All Medicines</h2>
+            <div id="medicineList"></div>
+        </div>
+
+        <div class="calendar-nav">
+            <button onclick="previousMonth()">◀️</button>
+            <div class="current-month" id="currentMonth"></div>
+            <button onclick="nextMonth()">▶️</button>
+        </div>
+
+        <div class="calendar" id="calendar"></div>
+
+        <div class="footer">
+            Made with ❤️ for your kitty's health 🐈
+        </div>
+    </div>
+
+    <!-- Add Medicine Modal -->
+    <div class="modal" id="addMedicineModal">
+        <div class="modal-content">
+            <h2>🐾 Add New Medicine</h2>
+            <div class="form-group">
+                <label>Medicine Name:</label>
+                <input type="text" id="medicineName" placeholder="e.g., Vitamin C">
+            </div>
+            <div class="form-group">
+                <label>Schedule Type:</label>
+                <select id="scheduleType" onchange="toggleScheduleInputs()">
+                    <option value="daily">Daily (Every day)</option>
+                    <option value="weekly">Weekly (Specific days)</option>
+                    <option value="cycle">Cycle (Days on/off)</option>
+                </select>
+            </div>
+            <div class="form-group" id="weeklyInputs" style="display: none;">
+                <label>Select Days:</label>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                        <input type="checkbox" value="0" class="week-day"> Sunday
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                        <input type="checkbox" value="1" class="week-day"> Monday
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                        <input type="checkbox" value="2" class="week-day"> Tuesday
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                        <input type="checkbox" value="3" class="week-day"> Wednesday
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                        <input type="checkbox" value="4" class="week-day"> Thursday
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                        <input type="checkbox" value="5" class="week-day"> Friday
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal;">
+                        <input type="checkbox" value="6" class="week-day"> Saturday
+                    </label>
+                </div>
+            </div>
+            <div class="form-group" id="cycleInputs" style="display: none;">
+                <label>Days On:</label>
+                <input type="number" id="daysOn" min="1" value="15">
+                <label style="margin-top: 10px;">Days Off:</label>
+                <input type="number" id="daysOff" min="0" value="10">
+            </div>
+            <div class="form-group">
+                <label>Start Date:</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="form-group">
+                <label>Color:</label>
+                <div class="color-picker" id="colorPicker">
+                    <div class="color-option" style="background: #ff6b6b" data-color="#ff6b6b"></div>
+                    <div class="color-option" style="background: #4ecdc4" data-color="#4ecdc4"></div>
+                    <div class="color-option" style="background: #45b7d1" data-color="#45b7d1"></div>
+                    <div class="color-option" style="background: #f9ca24" data-color="#f9ca24"></div>
+                    <div class="color-option" style="background: #6c5ce7" data-color="#6c5ce7"></div>
+                    <div class="color-option" style="background: #a29bfe" data-color="#a29bfe"></div>
+                    <div class="color-option" style="background: #fd79a8" data-color="#fd79a8"></div>
+                    <div class="color-option" style="background: #fdcb6e" data-color="#fdcb6e"></div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="saveMedicine()">Save</button>
+                <button class="btn btn-danger" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal" id="confirmationModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div style="text-align: center;">
+                <div style="font-size: 4em; margin-bottom: 20px;">💊🐱</div>
+                <h2 style="color: #e17055; margin-bottom: 20px;">Confirm Medicine Given</h2>
+                <p style="font-size: 1.1em; margin-bottom: 10px;">
+                    Are you sure you gave <strong id="confirmMedicineName" style="color: #6c5ce7;"></strong> to your kitty?
+                </p>
+                <p style="color: #636e72; margin-bottom: 20px;">
+                    <span id="confirmDateTime"></span>
+                </p>
+                <div style="background: #ffeaa7; border-radius: 15px; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 0; font-weight: bold;">✋ Double-check:</p>
+                    <ul style="text-align: left; margin: 10px 0 0 20px;">
+                        <li>Did you give the correct medicine?</li>
+                        <li>Was it the right dose?</li>
+                        <li>Did your kitty actually take it?</li>
+                    </ul>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                <button class="btn btn-success" onclick="confirmMedicineGiven()" style="padding: 15px 30px;">
+                    ✅ Yes, I gave it!
+                </button>
+                <button class="btn btn-danger" onclick="cancelConfirmation()" style="padding: 15px 30px;">
+                    ❌ No, cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day Detail Modal -->
+    <div class="modal" id="dayDetailModal">
+        <div class="modal-content">
+            <h2 id="dayDetailTitle">📅 Day Details</h2>
+            <div id="dayDetailContent"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-primary" onclick="closeDayModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize dayjs plugins
+        dayjs.extend(window.dayjs_plugin_isSameOrAfter);
+        dayjs.extend(window.dayjs_plugin_isSameOrBefore);
+
+        // Data structure
+        let medicines = [];
+        let medicineHistory = {};
+        let currentDate = dayjs();
+        let selectedColor = '#ff6b6b';
+        let pendingConfirmation = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            renderCalendar();
+            renderMedicineList();
+            renderTodayMedicines();
+            updateStats();
+            
+            // Set today's date as default for start date
+            document.getElementById('startDate').value = dayjs().format('YYYY-MM-DD');
+            
+            // Color picker setup
+            document.querySelectorAll('.color-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedColor = this.dataset.color;
+                });
+            });
+            
+            // Select first color by default
+            document.querySelector('.color-option').classList.add('selected');
+        });
+
+        function loadData() {
+            try {
+                const savedMedicines = localStorage.getItem('catMedicines');
+                const savedHistory = localStorage.getItem('catMedicineHistory');
+                
+                if (savedMedicines) {
+                    medicines = JSON.parse(savedMedicines);
+                }
+                if (savedHistory) {
+                    medicineHistory = JSON.parse(savedHistory);
+                }
+            } catch (e) {
+                console.log('Note: localStorage is not available in this environment');
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('catMedicines', JSON.stringify(medicines));
+                localStorage.setItem('catMedicineHistory', JSON.stringify(medicineHistory));
+            } catch (e) {
+                console.log('Note: localStorage is not available in this environment');
+            }
+        }
+
+        function openAddMedicineModal() {
+            document.getElementById('addMedicineModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('addMedicineModal').classList.remove('active');
+        }
+
+        function closeDayModal() {
+            document.getElementById('dayDetailModal').classList.remove('active');
+        }
+
+        function toggleScheduleInputs() {
+            const scheduleType = document.getElementById('scheduleType').value;
+            const cycleInputs = document.getElementById('cycleInputs');
+            const weeklyInputs = document.getElementById('weeklyInputs');
+            
+            cycleInputs.style.display = scheduleType === 'cycle' ? 'block' : 'none';
+            weeklyInputs.style.display = scheduleType === 'weekly' ? 'block' : 'none';
+        }
+
+        function saveMedicine() {
+            const name = document.getElementById('medicineName').value.trim();
+            const scheduleType = document.getElementById('scheduleType').value;
+            const startDate = document.getElementById('startDate').value;
+            
+            if (!name || !startDate) {
+                alert('Please fill in all fields! 🐾');
+                return;
+            }
+            
+            // Validate weekly schedule
+            if (scheduleType === 'weekly') {
+                const selectedDays = Array.from(document.querySelectorAll('.week-day:checked'));
+                if (selectedDays.length === 0) {
+                    alert('Please select at least one day of the week! 🐾');
+                    return;
+                }
+            }
+            
+            const medicine = {
+                id: Date.now().toString(),
+                name: name,
+                scheduleType: scheduleType,
+                startDate: startDate,
+                color: selectedColor
+            };
+            
+            if (scheduleType === 'cycle') {
+                medicine.daysOn = parseInt(document.getElementById('daysOn').value) || 15;
+                medicine.daysOff = parseInt(document.getElementById('daysOff').value) || 10;
+            } else if (scheduleType === 'weekly') {
+                medicine.weekDays = Array.from(document.querySelectorAll('.week-day:checked'))
+                    .map(cb => parseInt(cb.value));
+            }
+            
+            medicines.push(medicine);
+            saveData();
+            
+            // Reset form
+            document.getElementById('medicineName').value = '';
+            document.getElementById('scheduleType').value = 'daily';
+            document.getElementById('startDate').value = dayjs().format('YYYY-MM-DD');
+            document.querySelectorAll('.week-day').forEach(cb => cb.checked = false);
+            toggleScheduleInputs();
+            
+            closeModal();
+            renderMedicineList();
+            renderCalendar();
+            renderTodayMedicines();
+            updateStats();
+        }
+
+        function deleteMedicine(id) {
+            if (confirm('Are you sure you want to delete this medicine? 🐱')) {
+                medicines = medicines.filter(m => m.id !== id);
+                // Clean up history for this medicine
+                Object.keys(medicineHistory).forEach(date => {
+                    if (medicineHistory[date][id]) {
+                        delete medicineHistory[date][id];
+                    }
+                });
+                saveData();
+                renderMedicineList();
+                renderCalendar();
+                renderTodayMedicines();
+                updateStats();
+            }
+        }
+
+        function shouldTakeMedicine(medicine, date) {
+            const medStart = dayjs(medicine.startDate);
+            const checkDate = dayjs(date);
+            
+            if (checkDate.isBefore(medStart)) {
+                return false;
+            }
+            
+            if (medicine.scheduleType === 'daily') {
+                return true;
+            } else if (medicine.scheduleType === 'weekly') {
+                // Check if current day of week is in the selected days
+                const dayOfWeek = checkDate.day(); // 0 = Sunday, 1 = Monday, etc.
+                return medicine.weekDays && medicine.weekDays.includes(dayOfWeek);
+            } else if (medicine.scheduleType === 'cycle') {
+                const daysSinceStart = checkDate.diff(medStart, 'day');
+                const cycleLength = medicine.daysOn + medicine.daysOff;
+                const positionInCycle = daysSinceStart % cycleLength;
+                return positionInCycle < medicine.daysOn;
+            }
+            
+            return false;
+        }
+
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            const currentMonthEl = document.getElementById('currentMonth');
+            
+            currentMonthEl.textContent = currentDate.format('MMMM YYYY');
+            
+            calendar.innerHTML = '';
+            
+            // Add day headers
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            days.forEach(day => {
+                const header = document.createElement('div');
+                header.className = 'day-header';
+                header.textContent = day;
+                calendar.appendChild(header);
+            });
+            
+            // Get first day of month and calculate grid
+            const firstDay = currentDate.startOf('month');
+            const startDate = firstDay.startOf('week');
+            const endDate = currentDate.endOf('month').endOf('week');
+            
+            let date = startDate;
+            while (date.isSameOrBefore(endDate)) {
+                const cell = document.createElement('div');
+                cell.className = 'day-cell';
+                
+                if (!date.isSame(currentDate, 'month')) {
+                    cell.classList.add('other-month');
+                }
+                
+                if (date.isSame(dayjs(), 'day')) {
+                    cell.classList.add('today');
+                }
+                
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'day-number';
+                dayNumber.textContent = date.format('D');
+                cell.appendChild(dayNumber);
+                
+                // Add medicine dots
+                const dots = document.createElement('div');
+                dots.className = 'medicine-dots';
+                
+                const dateStr = date.format('YYYY-MM-DD');
+                medicines.forEach(medicine => {
+                    if (shouldTakeMedicine(medicine, dateStr)) {
+                        const dot = document.createElement('div');
+                        dot.className = 'medicine-dot';
+                        dot.style.backgroundColor = medicine.color;
+                        
+                        const historyEntry = medicineHistory[dateStr] && medicineHistory[dateStr][medicine.id];
+                        const taken = historyEntry && (historyEntry === true || historyEntry.given);
+                        
+                        if (taken) {
+                            dot.classList.add('taken');
+                        } else if (date.isSame(dayjs(), 'day') || date.isAfter(dayjs())) {
+                            dot.classList.add('pending');
+                        }
+                        
+                        dots.appendChild(dot);
+                    }
+                });
+                
+                cell.appendChild(dots);
+                
+                // Add click handler
+                const clickDate = date.format('YYYY-MM-DD');
+                cell.addEventListener('click', () => showDayDetails(clickDate));
+                
+                calendar.appendChild(cell);
+                date = date.add(1, 'day');
+            }
+        }
+
+        function showDayDetails(dateStr) {
+            const modal = document.getElementById('dayDetailModal');
+            const title = document.getElementById('dayDetailTitle');
+            const content = document.getElementById('dayDetailContent');
+            
+            title.textContent = `📅 ${dayjs(dateStr).format('MMMM D, YYYY')}`;
+            
+            let html = '<div style="max-height: 400px; overflow-y: auto;">';
+            let hasMedicines = false;
+            
+            medicines.forEach(medicine => {
+                if (shouldTakeMedicine(medicine, dateStr)) {
+                    hasMedicines = true;
+                    const historyEntry = medicineHistory[dateStr] && medicineHistory[dateStr][medicine.id];
+                    const taken = historyEntry && (historyEntry === true || historyEntry.given);
+                    const confirmedTime = historyEntry && historyEntry.confirmedTime ? historyEntry.confirmedTime : null;
+                    
+                    html += `
+                        <div class="today-medicine-item" style="background: ${medicine.color}33;">
+                            <div style="flex: 1;">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" 
+                                        id="detail-${medicine.id}" 
+                                        ${taken ? 'checked' : ''}
+                                        onchange="toggleMedicineTaken('${dateStr}', '${medicine.id}', true)">
+                                    <label for="detail-${medicine.id}" style="color: #2d3436;">
+                                        ${medicine.name}
+                                        ${confirmedTime ? `<br><small style="opacity: 0.7;">✓ Given at ${confirmedTime}</small>` : ''}
+                                    </label>
+                                </div>
+                            </div>
+                            <div style="width: 20px; height: 20px; background: ${medicine.color}; border-radius: 50%;"></div>
+                        </div>
+                    `;
+                }
+            });
+            
+            if (!hasMedicines) {
+                html += '<p style="text-align: center; color: #636e72; padding: 20px;">No medicines scheduled for this day 🐾</p>';
+            }
+            
+            html += '</div>';
+            content.innerHTML = html;
+            modal.classList.add('active');
+        }
+
+        function renderMedicineList() {
+            const list = document.getElementById('medicineList');
+            
+            if (medicines.length === 0) {
+                list.innerHTML = '<p style="text-align: center; color: #636e72;">No medicines added yet. Add your kitty\'s first medicine! 🐱</p>';
+                return;
+            }
+            
+            list.innerHTML = medicines.map(medicine => {
+                let schedule = '';
+                if (medicine.scheduleType === 'daily') {
+                    schedule = 'Every day';
+                } else if (medicine.scheduleType === 'weekly') {
+                    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    const selectedDays = medicine.weekDays.map(d => dayNames[d]).join(', ');
+                    schedule = `Weekly: ${selectedDays}`;
+                } else if (medicine.scheduleType === 'cycle') {
+                    schedule = `${medicine.daysOn} days on, ${medicine.daysOff} days off`;
+                }
+                    
+                return `
+                    <div class="medicine-item">
+                        <div style="display: flex; align-items: center;">
+                            <div class="medicine-color" style="background: ${medicine.color};"></div>
+                            <div class="medicine-info">
+                                <div class="medicine-name">${medicine.name}</div>
+                                <div class="medicine-schedule">
+                                    📅 ${schedule} | Started: ${dayjs(medicine.startDate).format('MMM D, YYYY')}
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger" onclick="deleteMedicine('${medicine.id}')">🗑️</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTodayMedicines() {
+            const todayList = document.getElementById('todayList');
+            const today = dayjs().format('YYYY-MM-DD');
+            
+            const todayMeds = medicines.filter(m => shouldTakeMedicine(m, today));
+            
+            if (todayMeds.length === 0) {
+                todayList.innerHTML = '<p style="opacity: 0.8;">No medicines scheduled for today! Your kitty gets a break! 😸</p>';
+                return;
+            }
+            
+            todayList.innerHTML = todayMeds.map(medicine => {
+                const historyEntry = medicineHistory[today] && medicineHistory[today][medicine.id];
+                const taken = historyEntry && (historyEntry === true || historyEntry.given);
+                const confirmedTime = historyEntry && historyEntry.confirmedTime ? historyEntry.confirmedTime : null;
+                
+                return `
+                    <div class="today-medicine-item">
+                        <div style="flex: 1;">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" 
+                                    id="today-${medicine.id}" 
+                                    ${taken ? 'checked' : ''}
+                                    onchange="toggleMedicineTaken('${today}', '${medicine.id}')">
+                                <label for="today-${medicine.id}">
+                                    ${medicine.name}
+                                    ${confirmedTime ? `<span style="font-size: 0.9em; opacity: 0.8;">✓ Given at ${confirmedTime}</span>` : ''}
+                                </label>
+                            </div>
+                        </div>
+                        <div style="width: 30px; height: 30px; background: ${medicine.color}; border-radius: 50%;"></div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleMedicineTaken(date, medicineId, fromModal = false) {
+            const medicine = medicines.find(m => m.id === medicineId);
+            if (!medicine) return;
+            
+            const isCurrentlyTaken = medicineHistory[date] && medicineHistory[date][medicineId];
+            
+            if (!isCurrentlyTaken) {
+                // Show confirmation modal when marking as taken
+                pendingConfirmation = { date, medicineId, fromModal, medicine };
+                
+                const modal = document.getElementById('confirmationModal');
+                document.getElementById('confirmMedicineName').textContent = medicine.name;
+                document.getElementById('confirmDateTime').textContent = 
+                    `Date: ${dayjs(date).format('MMMM D, YYYY')} | Time: ${dayjs().format('h:mm A')}`;
+                
+                modal.classList.add('active');
+                
+                // Uncheck the checkbox temporarily (will be checked if confirmed)
+                document.getElementById(`today-${medicineId}`).checked = false;
+                if (fromModal) {
+                    document.getElementById(`detail-${medicineId}`).checked = false;
+                }
+            } else {
+                // Allow unchecking with a simple confirmation
+                if (confirm(`Remove confirmation that ${medicine.name} was given? 🐾`)) {
+                    delete medicineHistory[date][medicineId];
+                    saveData();
+                    renderCalendar();
+                    updateStats();
+                    
+                    if (!fromModal) {
+                        renderTodayMedicines();
+                    }
+                } else {
+                    // Recheck the checkbox if they cancel
+                    if (document.getElementById(`today-${medicineId}`)) {
+                        document.getElementById(`today-${medicineId}`).checked = true;
+                    }
+                    if (fromModal && document.getElementById(`detail-${medicineId}`)) {
+                        document.getElementById(`detail-${medicineId}`).checked = true;
+                    }
+                }
+            }
+        }
+
+        function confirmMedicineGiven() {
+            if (!pendingConfirmation) return;
+            
+            const { date, medicineId, fromModal } = pendingConfirmation;
+            
+            if (!medicineHistory[date]) {
+                medicineHistory[date] = {};
+            }
+            
+            // Store as an object with timestamp
+            medicineHistory[date][medicineId] = {
+                given: true,
+                confirmedAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+                confirmedTime: dayjs().format('h:mm A')
+            };
+            
+            saveData();
+            renderCalendar();
+            updateStats();
+            
+            if (!fromModal) {
+                renderTodayMedicines();
+            } else {
+                // Update the checkbox in the day detail modal
+                if (document.getElementById(`detail-${medicineId}`)) {
+                    document.getElementById(`detail-${medicineId}`).checked = true;
+                }
+            }
+            
+            // Close confirmation modal
+            document.getElementById('confirmationModal').classList.remove('active');
+            
+            // Show success message
+            showSuccessMessage(pendingConfirmation.medicine.name);
+            
+            pendingConfirmation = null;
+        }
+
+        function cancelConfirmation() {
+            document.getElementById('confirmationModal').classList.remove('active');
+            pendingConfirmation = null;
+        }
+
+        function showSuccessMessage(medicineName) {
+            // Create a temporary success message
+            const successDiv = document.createElement('div');
+            successDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #55efc4, #00b894);
+                color: white;
+                padding: 20px 30px;
+                border-radius: 15px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+                z-index: 2000;
+                animation: slideIn 0.5s;
+                font-size: 1.1em;
+                font-weight: bold;
+            `;
+            successDiv.innerHTML = `✅ ${medicineName} confirmed at ${dayjs().format('h:mm A')}! Good job! 🐾`;
+            document.body.appendChild(successDiv);
+            
+            setTimeout(() => {
+                successDiv.style.animation = 'fadeOut 0.5s';
+                setTimeout(() => document.body.removeChild(successDiv), 500);
+            }, 3000);
+        }
+
+        function updateStats() {
+            const today = dayjs().format('YYYY-MM-DD');
+            const todayMeds = medicines.filter(m => shouldTakeMedicine(m, today));
+            const takenToday = todayMeds.filter(m => {
+                const historyEntry = medicineHistory[today] && medicineHistory[today][m.id];
+                return historyEntry && (historyEntry === true || historyEntry.given);
+            }).length;
+            
+            document.getElementById('todayCount').textContent = todayMeds.length;
+            document.getElementById('activeMeds').textContent = medicines.length;
+            
+            const completion = todayMeds.length > 0 
+                ? Math.round((takenToday / todayMeds.length) * 100) 
+                : 100;
+            document.getElementById('completionRate').textContent = completion + '%';
+        }
+
+        function previousMonth() {
+            currentDate = currentDate.subtract(1, 'month');
+            renderCalendar();
+        }
+
+        function nextMonth() {
+            currentDate = currentDate.add(1, 'month');
+            renderCalendar();
+        }
+
+        function exportData() {
+            const data = {
+                medicines: medicines,
+                history: medicineHistory,
+                exportDate: dayjs().format('YYYY-MM-DD HH:mm:ss')
+            };
+            
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `kitty-medicine-data-${dayjs().format('YYYY-MM-DD')}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This cannot be undone! 🙀')) {
+                medicines = [];
+                medicineHistory = {};
+                saveData();
+                renderCalendar();
+                renderMedicineList();
+                renderTodayMedicines();
+                updateStats();
+            }
+        }
+    </script>
+</body>
+</html>
